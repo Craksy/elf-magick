@@ -1,0 +1,32 @@
+#+TITLE: Readme
+
+This is intended for personal notes more than being an actual readme.
+
+
+* memory offset
+
+a program might have the following headers:
+
+|-------+---------------+---------------+--------|
+| flags | memory        |          file |  align |
+|-------+---------------+---------------+--------|
+| r..   | 0xa000-0xa010 | 0x0000-0x0010 | 0x0100 |
+| r.x   | 0xa100-0xa129 | 0x0100-0x0129 | 0x0100 |
+| rw.   | 0xa200-0xa209 | 0x0200-0x0209 | 0x0100 |
+|-------+---------------+---------------+--------|
+
+The program might load in at =0xF234= with an ELF entry of =0x0123=, which means it loads into the 2nd segment.
+
+The entry offset is the difference in ELF entry and start of the segment which is was loaded
+offset = ~0x0123-0x0100=0x0023~
+that would mean that the entry point is at ~0xf234 + 0x0023 = 0xf257~
+
+#+begin_src python :results output
+base = 0xf234
+print(hex(base & 0xff00))
+print(hex(0x100-1))
+#+end_src
+
+#+RESULTS:
+: 0xf200
+: -0x102
