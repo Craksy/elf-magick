@@ -9,5 +9,6 @@ edition = "2018"
 delf = { path = "../delf" }
 region = "2.2"
 mmap = "0.1"
+carpenter = {path = "../../carpenter"}
 
 [features]

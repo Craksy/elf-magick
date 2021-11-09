@@ -1,10 +1,12 @@
-pub struct Table<'a> {
-    pub header: &'a str,
-    pub labels: Vec<&'a str>,
+pub struct Table {
+    pub header: String,
+    pub labels: Vec<String>,
     pub rows: Vec<Vec<String>>,
 }
 
-impl Table<'_> {
+struct Struct {}
+
+impl Table {
     pub fn build(&self) -> String {
         //Get the minimum width for each column
         let col_widths: Vec<usize> = self

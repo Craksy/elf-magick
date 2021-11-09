@@ -4,7 +4,7 @@
 _start:
     mov rax, 1
     mov rdi, 1
-    lea rsi, [rel _hello]
+    mov rsi, _hello
     mov rdx, 12
     syscall
     xor rdi, rdi

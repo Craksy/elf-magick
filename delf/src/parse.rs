@@ -6,11 +6,6 @@ macro_rules! impl_parse_for_enum {
     ($type:ident, $number_parser: ident) => {
         impl $type {
             pub fn parse(input: parse::Input) -> parse::Result<Self> {
-                // use nom::{
-                //     combinator::map_res,
-                //     error::{context, ErrorKind},
-                //     number::complete::$number_parser,
-                // };
                 let parser = map_res($number_parser, |x| {
                     Self::try_from(x).map_err(|_| ErrorKind::Alt)
                 });

@@ -1,0 +1,47 @@
+55dc54828000-55dc54832000 r--p 00000000 08:20 565289                     /home/amnesia/projects/asm-playground/elk/target/debug/elk
+55dc54832000-55dc548ab000 r-xp 0000a000 08:20 565289                     /home/amnesia/projects/asm-playground/elk/target/debug/elk
+55dc548ab000-55dc548cb000 r--p 00083000 08:20 565289                     /home/amnesia/projects/asm-playground/elk/target/debug/elk
+55dc548cc000-55dc548d1000 r--p 000a3000 08:20 565289                     /home/amnesia/projects/asm-playground/elk/target/debug/elk
+55dc548d1000-55dc548d2000 rw-p 000a8000 08:20 565289                     /home/amnesia/projects/asm-playground/elk/target/debug/elk
+55dc555d9000-55dc555fa000 rw-p 00000000 00:00 0                          [heap]
+7f6be0aca000-7f6be0acc000 rw-p 00000000 00:00 0 
+7f6be0acc000-7f6be0af1000 r--p 00000000 08:20 12114                      /usr/lib/x86_64-linux-gnu/libc-2.31.so
+7f6be0af1000-7f6be0c69000 r-xp 00025000 08:20 12114                      /usr/lib/x86_64-linux-gnu/libc-2.31.so
+7f6be0c69000-7f6be0cb3000 r--p 0019d000 08:20 12114                      /usr/lib/x86_64-linux-gnu/libc-2.31.so
+7f6be0cb3000-7f6be0cb4000 ---p 001e7000 08:20 12114                      /usr/lib/x86_64-linux-gnu/libc-2.31.so
+7f6be0cb4000-7f6be0cb7000 r--p 001e7000 08:20 12114                      /usr/lib/x86_64-linux-gnu/libc-2.31.so
+7f6be0cb7000-7f6be0cba000 rw-p 001ea000 08:20 12114                      /usr/lib/x86_64-linux-gnu/libc-2.31.so
+7f6be0cba000-7f6be0cbe000 rw-p 00000000 00:00 0 
+7f6be0cbe000-7f6be0cbf000 r--p 00000000 08:20 12153                      /usr/lib/x86_64-linux-gnu/libdl-2.31.so
+7f6be0cbf000-7f6be0cc1000 r-xp 00001000 08:20 12153                      /usr/lib/x86_64-linux-gnu/libdl-2.31.so
+7f6be0cc1000-7f6be0cc2000 r--p 00003000 08:20 12153                      /usr/lib/x86_64-linux-gnu/libdl-2.31.so
+7f6be0cc2000-7f6be0cc3000 r--p 00003000 08:20 12153                      /usr/lib/x86_64-linux-gnu/libdl-2.31.so
+7f6be0cc3000-7f6be0cc4000 rw-p 00004000 08:20 12153                      /usr/lib/x86_64-linux-gnu/libdl-2.31.so
+7f6be0cc4000-7f6be0cd3000 r--p 00000000 08:20 12357                      /usr/lib/x86_64-linux-gnu/libm-2.31.so
+7f6be0cd3000-7f6be0d7a000 r-xp 0000f000 08:20 12357                      /usr/lib/x86_64-linux-gnu/libm-2.31.so
+7f6be0d7a000-7f6be0e11000 r--p 000b6000 08:20 12357                      /usr/lib/x86_64-linux-gnu/libm-2.31.so
+7f6be0e11000-7f6be0e12000 r--p 0014c000 08:20 12357                      /usr/lib/x86_64-linux-gnu/libm-2.31.so
+7f6be0e12000-7f6be0e13000 rw-p 0014d000 08:20 12357                      /usr/lib/x86_64-linux-gnu/libm-2.31.so
+7f6be0e13000-7f6be0e1a000 r--p 00000000 08:20 12484                      /usr/lib/x86_64-linux-gnu/libpthread-2.31.so
+7f6be0e1a000-7f6be0e2b000 r-xp 00007000 08:20 12484                      /usr/lib/x86_64-linux-gnu/libpthread-2.31.so
+7f6be0e2b000-7f6be0e30000 r--p 00018000 08:20 12484                      /usr/lib/x86_64-linux-gnu/libpthread-2.31.so
+7f6be0e30000-7f6be0e31000 r--p 0001c000 08:20 12484                      /usr/lib/x86_64-linux-gnu/libpthread-2.31.so
+7f6be0e31000-7f6be0e32000 rw-p 0001d000 08:20 12484                      /usr/lib/x86_64-linux-gnu/libpthread-2.31.so
+7f6be0e32000-7f6be0e36000 rw-p 00000000 00:00 0 
+7f6be0e36000-7f6be0e39000 r--p 00000000 08:20 12228                      /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+7f6be0e39000-7f6be0e4b000 r-xp 00003000 08:20 12228                      /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+7f6be0e4b000-7f6be0e4f000 r--p 00015000 08:20 12228                      /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+7f6be0e4f000-7f6be0e50000 r--p 00018000 08:20 12228                      /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+7f6be0e50000-7f6be0e51000 rw-p 00019000 08:20 12228                      /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+7f6be0e51000-7f6be0e53000 rw-p 00000000 00:00 0 
+7f6be0e61000-7f6be0e62000 ---p 00000000 00:00 0 
+7f6be0e62000-7f6be0e64000 rw-p 00000000 00:00 0 
+7f6be0e64000-7f6be0e65000 r--p 00000000 08:20 11981                      /usr/lib/x86_64-linux-gnu/ld-2.31.so
+7f6be0e65000-7f6be0e88000 r-xp 00001000 08:20 11981                      /usr/lib/x86_64-linux-gnu/ld-2.31.so
+7f6be0e88000-7f6be0e90000 r--p 00024000 08:20 11981                      /usr/lib/x86_64-linux-gnu/ld-2.31.so
+7f6be0e91000-7f6be0e92000 r--p 0002c000 08:20 11981                      /usr/lib/x86_64-linux-gnu/ld-2.31.so
+7f6be0e92000-7f6be0e93000 rw-p 0002d000 08:20 11981                      /usr/lib/x86_64-linux-gnu/ld-2.31.so
+7f6be0e93000-7f6be0e94000 rw-p 00000000 00:00 0 
+7ffc81825000-7ffc81846000 rw-p 00000000 00:00 0                          [stack]
+7ffc81869000-7ffc8186d000 r--p 00000000 00:00 0                          [vvar]
+7ffc8186d000-7ffc8186e000 r-xp 00000000 00:00 0                          [vdso]

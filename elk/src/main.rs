@@ -3,37 +3,21 @@ use std::{
     error::Error,
     fs,
     io::{stdin, Write},
+    mem::transmute,
     process::{self, Command, Stdio},
     slice::from_raw_parts_mut,
 };
 
-use delf::{types::*, File};
+use carpenter::*;
+use delf::{types::*, FileHeader};
 use mmap::{MapOption, MemoryMap};
 use region::{protect, Protection};
 
-pub mod tables;
-
-use tables::*;
-
 fn main() -> Result<(), Box<dyn Error>> {
+    let base = 0x400000usize;
     let path = env::args().nth(1).expect("Usage: elk <file_path>");
     let input = fs::read(&path)?;
-    if let Some(ref file) = File::parse_or_print_error(&input[..]) {
-        if let Some(ds) = file
-            .program_headers
-            .iter()
-            .find(|h| h.typ == delf::types::SegmentType::Dynamic)
-        {
-            if let delf::types::SegmentContent::Dynamic(ref table) = ds.contents {
-                for entry in table {
-                    println!("entry: {:?}", entry);
-                }
-            }
-        }
-        let base = 0x400000usize;
-        let file_table = Table::from(file).build();
-        let prog_table = Table::from(&file.program_headers).build();
-        println!("{}{}", file_table, prog_table);
+    if let Some(file) = FileHeader::parse_or_print_error(&input[..]) {
         println!("Disassembling {}...", &path);
         let prog_header = file
             .program_headers
@@ -42,6 +26,24 @@ fn main() -> Result<(), Box<dyn Error>> {
             .expect("entry point not found in program headers");
         let code = &prog_header.data;
         ndisasm(code, file.entry_point)?;
+
+        let rela_entries = &file.read_rela_entries().unwrap_or_else(|e| {
+            println!("couldn't read entries: {:?}", e);
+            Default::default()
+        });
+        file.print();
+        ProgramHeader::print_table(&file.program_headers);
+        if let Some(ds) = file
+            .program_headers
+            .iter()
+            .find(|h| h.typ == delf::types::SegmentType::Dynamic)
+        {
+            if let delf::types::SegmentContent::Dynamic(ref table) = ds.contents {
+                DynamicEntry::print_table(&table);
+            }
+            RelaEntry::print_table(rela_entries);
+        }
+
         println!("Mapping segments...");
         let mut mappings = Vec::new();
         for ph in file
@@ -54,9 +56,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             let aligned = align_down(start, 0x1000);
             let padding = start - aligned;
             let memory_range = aligned..(aligned + ph.mem_size.0 as usize + padding);
-            println!("Mapping segment at {:?} with {:?}", memory_range, ph.flags);
             let addr: *mut u8 = aligned as _;
-            println!("Address: {:p}", addr);
+            println!(
+                "Mapping segment at {:?} with {:?}. Address: {:p}",
+                memory_range, ph.flags, addr
+            );
             let map = MemoryMap::new(
                 ph.mem_size.0 as usize + padding,
                 &[MapOption::MapWritable, MapOption::MapAddr(addr)],
@@ -68,8 +72,28 @@ fn main() -> Result<(), Box<dyn Error>> {
                 dst.copy_from_slice(&ph.data[..]);
             }
 
-            println!("setting permissions...");
+            for reloc in rela_entries {
+                if ph.mem_range().contains(&reloc.offset) {
+                    unsafe {
+                        let segment_start = addr.add(padding);
+                        let segment_offset = reloc.offset - ph.mem_range().start;
+                        println!("Apply {:?} relocation at {:?}", reloc.typ, segment_offset);
+                        let reloc_addr: *mut u64 =
+                            transmute(segment_start.add(segment_offset.into()));
+                        match reloc.typ {
+                            RelType::Relative => {
+                                let val = reloc.addend + Addr(base as u64);
+                                *reloc_addr = val.0;
+                            }
+                            _ => {
+                                panic!("Unsupported type {:?}", &reloc.typ)
+                            }
+                        }
+                    }
+                }
+            }
 
+            println!("setting permissions...");
             let protection = ph.flags.iter().fold(Protection::NONE, |acc, f| {
                 acc | match f {
                     SegmentFlags::Read => Protection::READ,
@@ -80,23 +104,15 @@ fn main() -> Result<(), Box<dyn Error>> {
             unsafe {
                 protect(addr, ph.data.len() + padding, protection)?;
             }
-            println!("Done. Saving map");
             mappings.push(map);
         }
 
         let code_ptr = code.as_ptr();
-
-        pause("make code executable")?;
-
         unsafe {
             protect(code_ptr, code.len(), Protection::READ_WRITE_EXECUTE)?;
         }
 
-        println!("jump to {:?}", file.entry_point);
-        // println!("entry offset @ {:?}", entry_offset);
-        // println!(" entry point @ {:?}", entry_point);
-
-        pause("jump")?;
+        println!("Jumping to entry point: {:?}", file.entry_point);
 
         unsafe { jmp((file.entry_point.0 as usize + base) as _) };
     } else {
@@ -106,21 +122,17 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn align_up(addr: usize, align: usize) -> usize {
-    println!("aligning {:#x} to {:#x}", addr, align);
+fn _align_up(addr: usize, align: usize) -> usize {
     let aligned = (addr + align - 1) & !(align - 1);
-    println!("after: {:#x}", aligned);
     aligned
 }
 
 fn align_down(addr: usize, align: usize) -> usize {
-    println!("aligning {} to {}", addr, align);
     let aligned = addr & !(align - 1);
-    println!("after: {}", aligned);
     aligned
 }
 
-fn pause(msg: &str) -> Result<(), Box<dyn Error>> {
+fn _pause(msg: &str) -> Result<(), Box<dyn Error>> {
     println!("Press enter to {}", msg);
     {
         let s = &mut String::new();
@@ -130,7 +142,7 @@ fn pause(msg: &str) -> Result<(), Box<dyn Error>> {
 }
 
 unsafe fn jmp(addr: *const u8) {
-    let fptr: fn() = std::mem::transmute(addr);
+    let fptr: fn() = transmute(addr);
     fptr();
 }
 
@@ -149,64 +161,4 @@ fn ndisasm(input: &[u8], entry_offset: Addr) -> Result<(), Box<dyn Error>> {
     let res = proc.wait_with_output()?;
     println!("{}", String::from_utf8_lossy(&res.stdout));
     Ok(())
-}
-
-impl From<&Vec<ProgramHeader>> for Table<'_> {
-    fn from(headers: &Vec<ProgramHeader>) -> Self {
-        let pheaders: Vec<Vec<String>> = headers
-            .iter()
-            .map(|ph| {
-                let flags = &[
-                    (SegmentFlags::Read, "R"),
-                    (SegmentFlags::Write, "W"),
-                    (SegmentFlags::Execute, "X"),
-                ]
-                .map(|(f, l)| if ph.flags.contains(f) { l } else { &"-" })
-                .join(" ");
-                vec![
-                    format!("{:?}", ph.typ),
-                    format!("{}", flags),
-                    format!("{:?}", ph.mem_range()),
-                    format!("{:?}", ph.file_range()),
-                    format!("{:?}", ph.align),
-                ]
-            })
-            .collect();
-        Self {
-            header: "Program Headers",
-            labels: vec!["Type", "Flags", "Memory", "File", "Align"],
-            rows: pheaders,
-        }
-    }
-}
-
-impl From<&File> for Table<'_> {
-    fn from(file: &File) -> Self {
-        Self {
-            header: "File Header",
-            labels: vec![
-                "Type",
-                "Architecture",
-                "Entry Point",
-                "Program Headers",
-                "Section Headers",
-            ],
-            rows: vec![
-                vec![
-                    format!("{:?}", file.typ),
-                    format!("{:?}", file.machine),
-                    format!("{:?}", file.entry_point),
-                    format!("Count: {:4}", file.prog_header_info.1),
-                    format!("Count: {:4}", file.sect_header_info.1),
-                ],
-                vec![
-                    "".to_string(),
-                    "".to_string(),
-                    "".to_string(),
-                    format!("bytes: {:4}", file.prog_header_info.0),
-                    format!("bytes: {:4}", file.sect_header_info.0),
-                ],
-            ],
-        }
-    }
 }

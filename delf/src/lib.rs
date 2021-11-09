@@ -1,13 +1,16 @@
 pub mod parse;
 pub mod types;
 
+use carpenter::*;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take},
     combinator::{map, verify},
     error::context,
+    multi::many0,
     number::complete::{le_u16, le_u32},
     sequence::tuple,
+    Offset,
 };
 use std::fmt::{self, Debug};
 
@@ -23,19 +26,91 @@ impl<'a> Debug for HexDump<'a> {
     }
 }
 
-#[derive(Debug)]
-pub struct File {
+#[derive(PrettyTable)]
+#[header("")]
+pub struct HeaderInfo {
+    pub count: usize,
+    #[fmt("{:?}B")]
+    pub size: usize,
+}
+
+impl Debug for HeaderInfo {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.get_table())
+    }
+}
+
+#[derive(PrettyTable)]
+pub struct FileHeader {
     pub typ: Type,
     pub machine: Machine,
     pub entry_point: Addr,
+    #[skip]
     pub program_headers: Vec<ProgramHeader>,
-    pub prog_header_info: (usize, usize),
-    pub sect_header_info: (usize, usize),
+    pub program_header_info: HeaderInfo,
+    pub section_header_info: HeaderInfo,
     // pub section_headers: Vec<ProgramHeader>,
 }
 
-impl File {
+#[derive(thiserror::Error, Debug)]
+pub enum RelaReadError {
+    #[error("Rela dynamic entry not found")]
+    RelaNotFound,
+    #[error("Rela size entry not found")]
+    RelaSizeNotFound,
+    #[error("Rela segment not found")]
+    RelaSegmentNotFound,
+    #[error("Parsing failed")]
+    RelaParseError(nom::error::VerboseErrorKind),
+}
+
+impl FileHeader {
     const MAGIC: &'static [u8] = &[0x7f, b'E', b'L', b'F'];
+
+    pub fn segment_at(&self, addr: Addr) -> Option<&ProgramHeader> {
+        self.program_headers
+            .iter()
+            .filter(|ph| ph.typ == SegmentType::Load)
+            .find(|ph| ph.mem_range().contains(&addr))
+    }
+
+    pub fn segment_type(&self, typ: SegmentType) -> Option<&ProgramHeader> {
+        self.program_headers.iter().find(|ph| ph.typ == typ)
+    }
+
+    pub fn dynamic_entry(&self, tag: DynamicTag) -> Option<Addr> {
+        match self.segment_type(SegmentType::Dynamic) {
+            Some(ProgramHeader {
+                contents: SegmentContent::Dynamic(entries),
+                ..
+            }) => entries.iter().find(|e| e.tag == tag).map(|e| e.addr),
+            _ => None,
+        }
+    }
+
+    pub fn read_rela_entries(&self) -> Result<Vec<RelaEntry>, RelaReadError> {
+        let start = self
+            .dynamic_entry(DynamicTag::Rela)
+            .ok_or(RelaReadError::RelaNotFound)?;
+        let size = self
+            .dynamic_entry(DynamicTag::RelaSz)
+            .ok_or(RelaReadError::RelaSizeNotFound)?;
+        let segment = self
+            .segment_at(start)
+            .ok_or(RelaReadError::RelaSegmentNotFound)?;
+
+        let segstart = start - segment.mem_range().start;
+        let input = &segment.data[segstart.into()..][..size.into()];
+
+        match many0(RelaEntry::parse)(input) {
+            Ok((_, entries)) => Ok(entries),
+            Err(nom::Err::Failure(err)) | Err(nom::Err::Error(err)) => {
+                let (_, e) = &err.errors[0];
+                Err(RelaReadError::RelaParseError(e.clone()))
+            }
+            _ => unreachable!(),
+        }
+    }
 
     pub fn parse(input: parse::Input) -> parse::Result<Self> {
         let full = input;
@@ -74,8 +149,14 @@ impl File {
                 machine,
                 entry_point,
                 program_headers,
-                prog_header_info: (psize, pcount),
-                sect_header_info: (ssize, scount),
+                program_header_info: HeaderInfo {
+                    size: psize,
+                    count: pcount,
+                },
+                section_header_info: HeaderInfo {
+                    size: ssize,
+                    count: scount,
+                },
             },
         ))
     }
@@ -85,9 +166,9 @@ impl File {
             Ok((_, file)) => Some(file),
             Err(nom::Err::Failure(e)) | Err(nom::Err::Error(e)) => {
                 eprintln!("Failed parsing input!");
-                for (input, err) in e.errors {
+                for (inp, err) in e.errors {
                     eprintln!("{:?} at:", err);
-                    eprintln!("{:?}", HexDump(input));
+                    eprintln!("[{:#x}] {:?}", input.offset(inp), HexDump(inp));
                 }
                 None
             }
